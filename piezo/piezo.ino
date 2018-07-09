@@ -1,5 +1,5 @@
 #define PIEZO 3 // PWM-capable pin
-int d = 500;
+int d = 100;
 
 void setup() {
   pinMode(PIEZO, OUTPUT);
