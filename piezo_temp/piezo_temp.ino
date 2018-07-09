@@ -1,46 +1,60 @@
-#include <OneWire.h>
-#include <DallasTemperature.h>
+/*
+ * The thermistor-specific code in this repo 
+ * was provided by 
+ * http://www.circuitbasics.com/arduino-thermistor-temperature-sensor-tutorial/
+ * Thank you!
+ */
 
-#define TEMP_PIN      2
-#define PIEZO_PIN     3    // PWM-capable pin
+#define THERMISTOR_PIN 0
+#define PIEZO_PIN      3 // PWM-capable pin
+#define HOT_F         90
+#define COLD_F        32
+#define BUZZ_DELAY   100
 
-// create oneWire instance to talk to any OneWire devices.
-// in our case, we only have an 1820B temp sensor
-OneWire oneWire(TEMP_PIN);
-// inform dallas temp of our oneWire reference
-DallasTemperature sensors(&oneWire);
-
-#define WAIT        100    // millis between beeps
-
-#define HOT_C        26    
-#define COLD_C       20
-
-#define HOT_PITCH   255
-#define COLD_PITCH  128
-#define HAPPY_PITCH 100
-
-float temp_voltage = 0;
-float temp_sensor  = 0;
-float temp_celsius = 0;
+int Vo;
+float R1 = 10000;
+float logR2, R2, T, Tc, Tf;
+float c1 = 1.009249522e-03, c2 = 2.378405444e-04, c3 = 2.019202697e-07;
 
 void setup() {
   pinMode(PIEZO_PIN, OUTPUT);
-  
-  // init serial port
   Serial.begin(9600);
-  Serial.println("Hello Sensor World");
+}
+
+void buzz_temp(int tf) {
+  int pitch = 1; // stay quiet if temp is normal
   
-  // start up dallas temp library
-  sensors.begin();
+  if (tf > HOT_F) {
+    pitch = 255; // shrill and horrible
+  } else if (tf <= COLD_F) {
+    pitch = 128; // obstreperous
+  }
+
+  for (int i = 10; i < tf; i += 10) {
+    analogWrite(PIEZO_PIN, pitch);
+    delay(BUZZ_DELAY);
+    digitalWrite(PIEZO_PIN, LOW);
+    delay(BUZZ_DELAY);
+  }
 }
 
 void loop() {
-  sensors.requestTemperatures(); 
-  Serial.print("Temp: ");
-  Serial.print(sensors.getTempCByIndex(0)); // 0 is the first IC on the bus
-  
-  /*analogWrite(PIEZO_PIN, 128);  // 50 percent duty cycle tone to the piezo
-  delay(WAIT);
-  digitalWrite(PIEZO_PIN, LOW);
-  delay(WAIT);*/
+
+  Vo = analogRead(THERMISTOR_PIN);
+  R2 = R1 * (1023.0 / (float)Vo - 1.0);
+  logR2 = log(R2);
+  T = (1.0 / (c1 + c2*logR2 + c3*logR2*logR2*logR2));
+  Tc = T - 273.15;
+  Tf = (Tc * 9.0)/ 5.0 + 32.0; 
+
+  Serial.print("Temperature: "); 
+  Serial.print(Tf);
+  Serial.print(" F; ");
+  Serial.print(Tc);
+  Serial.println(" C");   
+
+  buzz_temp(Tf);
+
+  delay(1000);
 }
+
