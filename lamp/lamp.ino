@@ -1,12 +1,14 @@
 // thanks to arduino forums user dfvr1994 for this
 // https://forum.arduino.cc/index.php?PHPSESSID=pus4sfuvv8l714hlv790qt8822&topic=488814.15
 
-const byte pirPin = 12;
+#define WAIT_SECS   60
+
+const byte pirPin =  12;
 const byte relayPin = 2;
 
 const byte calibrationTime = 20;
 boolean alarmState = 0;
-byte countDown = 0;
+int countDown = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -30,7 +32,7 @@ void loop() {
     digitalWrite(relayPin, HIGH);
     Serial.println("motion detected");
     Serial.println("Relay ON");
-    countDown = 20; // seconds
+    countDown = WAIT_SECS * 100; // 10-ms chunks
     alarmState = HIGH; // remember it
   }
   if (countDown == 0 && alarmState)
@@ -45,14 +47,14 @@ void loop() {
   if (countDown > 0)
   {
     if (digitalRead(pirPin) == HIGH)
-    { countDown = 20; // seconds
+    { countDown = WAIT_SECS * 100; // 10-ms chunks
       digitalWrite(relayPin, HIGH); // relay on   
       Serial.println(F("motion detected"));
     }
     
     // if countdown is still running
     Serial.println(countDown);
-    delay(1000); // no blink
+    delay(10); 
     countDown --; // -1
   }
 }
